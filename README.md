@@ -248,16 +248,56 @@ npm run build
 
 ## 9. Production Deployment Guide
 
-| Component | Target Provider | Configuration |
+### Live Public Deployments
+* **Frontend Application (Vercel):** [https://frontend-sigma-liart-89.vercel.app](https://frontend-sigma-liart-89.vercel.app)
+* **GitHub Repository:** [https://github.com/ROBUST-Anuj/CustomerSeg](https://github.com/ROBUST-Anuj/CustomerSeg)
+
+### Architecture in Production
+| Tier | Host | Status / Setup |
 | :--- | :--- | :--- |
-| **Frontend** | Vercel / Netlify / Render Static | Set build command `npm run build`, output directory `dist`, environment variable `VITE_API_BASE_URL=https://your-api.onrender.com/api/v1` |
-| **Backend API** | Render / Railway / AWS ECS | Set `PORT=5000`, `NODE_ENV=production`, `DB_CLIENT=mysql`, `DATABASE_URL` or MySQL host credentials, `JWT_SECRET`, `ML_SERVICE_URL` |
-| **ML Microservice** | Render / Railway / Google Cloud Run | Set `PORT=8001`, start command `uvicorn app.main:app --host 0.0.0.0 --port 8001` |
-| **MySQL Database** | Aiven / PlanetScale / Amazon RDS | Create database `customerseg_db` with UTF-8 encoding |
+| **Frontend** | **Vercel** | **Live** at `https://frontend-sigma-liart-89.vercel.app` (SPA rewrites configured in `vercel.json`). |
+| **Backend API** | **Render / Railway** | Configured via `render.yaml` (free web service, Node.js runtime). |
+| **ML Microservice** | **Render / Cloud Run** | Configured via `render.yaml` (free web service, Python 3.11 runtime, Scikit-learn). |
+| **Database** | **TiDB Serverless / Aiven** | Free tier MySQL 8.0 wire-compatible relational database with SSL support. |
 
 ---
 
-## 10. References & Acknowledgments
+### Step-by-Step Production Hosting Deployment
+
+#### 1. Database (Persistent Cloud MySQL — Free, No Credit Card)
+1. Create a free MySQL database on **TiDB Serverless** ([tidbcloud.com](https://tidbcloud.com/)) or **Aiven MySQL** ([aiven.io](https://aiven.io/)).
+2. Retrieve your connection string, for example:
+   ```text
+   DATABASE_URL=mysql://<user>:<password>@<host>:4000/<dbname>?ssl={"rejectUnauthorized":false}
+   ```
+   *(CustomerSeg's Knex engine automatically parses `DATABASE_URL` and enables SSL certificates).*
+
+#### 2. Backend & ML Services (Render 1-Click Blueprint)
+1. Go to [dashboard.render.com](https://dashboard.render.com/) and click **New +** &rarr; **Blueprint**.
+2. Connect the repository `ROBUST-Anuj/CustomerSeg`.
+3. Render will automatically detect `render.yaml` and provision:
+   - `customerseg-ml-service` (Python FastAPI microservice).
+   - `customerseg-backend` (Node.js API with JWT auth and database migrations).
+4. In the Render Dashboard for `customerseg-backend`, set the environment variable:
+   - `DATABASE_URL`: Your cloud MySQL connection string.
+   - `CORS_ORIGIN`: `https://frontend-sigma-liart-89.vercel.app`
+
+#### 3. Connect Frontend to Deployed Backend
+In your Vercel project dashboard under **Settings &rarr; Environment Variables**:
+1. Add `VITE_API_BASE_URL` = `https://<your-backend-subdomain>.onrender.com/api/v1`
+2. Redeploy the project on Vercel (`npx vercel --prod`).
+
+---
+
+## 10. Operational Limitations & Troubleshooting
+
+1. **Free-Tier Cold Starts:** On free hosting tiers (such as Render free web services), inactive services spin down after 15 minutes of inactivity. Initial requests after dormancy may take 30–50 seconds to initialize.
+2. **Persistent Storage:** Uploaded CSV files on cloud container platforms are streamed into the relational database (`customers` and `datasets` tables) to prevent reliance on ephemeral container disk files.
+3. **Database Security:** Cloud MySQL hosts require TLS/SSL encryption. CustomerSeg automatically enforces `ssl: { rejectUnauthorized: false }` when connecting to remote hosts.
+
+---
+
+## 11. References & Acknowledgments
 
 - **React.js**: [https://react.dev/](https://react.dev/)
 - **Node.js**: [https://nodejs.org/](https://nodejs.org/)
@@ -271,3 +311,4 @@ npm run build
 **Project Presentation:** IPS Academy, Institute of Engineering and Science, Indore &bull; Department of Computer Science & Engineering (2026–27).  
 **Faculty Guide:** Ms. Arpita Bhatia  
 **Presented by:** Avani Gupta  
+
