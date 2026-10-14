@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: customerseg-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: customerseg_db
+      MYSQL_USER: customerseg_user
+      MYSQL_PASSWORD: customerseg_secure_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: customerseg-ml
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: customerseg-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ml-service:
+        condition: service_started
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DB_CLIENT=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=customerseg_user
+      - DB_PASSWORD=customerseg_secure_pass
+      - DB_NAME=customerseg_db
+      - JWT_SECRET=customerseg-production-secret-key-2026
+      - ML_SERVICE_URL=http://ml-service:8001
+      - CORS_ORIGIN=http://localhost,http://localhost:5173,http://localhost:80
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: customerseg-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mysql_data:

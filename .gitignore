@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production builds
+dist/
+build/
+.vercel/
+
+# Environment variables & secrets
+.env
+*.env
+!.env.example
+!*/.env.example
+
+# Local SQLite databases & uploads
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+backend/data/
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Python cache & test artifacts
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*/.pytest_cache/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
