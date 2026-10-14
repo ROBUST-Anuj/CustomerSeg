@@ -8,7 +8,9 @@ const db = require('../config/db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // Setup multer storage
-const uploadDir = path.resolve(__dirname, '../../uploads');
+const uploadDir = process.env.VERCEL
+  ? path.join('/tmp', 'uploads')
+  : path.resolve(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
